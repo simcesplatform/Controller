@@ -134,9 +134,7 @@ class Controller(AbstractSimulationComponent):
 
 def create_component() -> Controller:
     """
-    Creates and returns a SimpleComponent based on the environment variables.
-
-    TODO: add proper description specific for this component.
+    Creates and returns a Controller componet 
     """
     return Controller()
         
