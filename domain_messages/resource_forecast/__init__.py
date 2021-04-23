@@ -1,0 +1,1 @@
+from domain_messages.resource_forecast.resource_forecast_state import ResourceForecastPowerMessage

@@ -1,0 +1,4 @@
+[submodule "domain-messages"]
+	path = domain-messages
+	url = https://git.ain.rd.tut.fi/procemplus/domain-messages.git
+	branch = master
