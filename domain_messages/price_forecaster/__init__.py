@@ -1,1 +1,0 @@
-from domain_messages.price_forecaster.price_forecast import PriceForecastStateMessage
