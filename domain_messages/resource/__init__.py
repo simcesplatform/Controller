@@ -1,0 +1,1 @@
+from domain_messages.resource.resource_state import ResourceStateMessage
