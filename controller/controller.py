@@ -3,21 +3,15 @@ from typing import Any, cast, Set, Union
 
 from tools.components import AbstractSimulationComponent
 from tools.exceptions.messages import MessageError
-from tools.messages import BaseMessage
+from tools.messages import BaseMessage,StatusMessage
 from tools.tools import FullLogger, load_environmental_variables
 
 # import all the required messages from installed libraries
-from domain_messages.dispatch import ResourceForecastStateDispatchMessage
+from domain_messages.dispatch.dispatch import ResourceForecastStateDispatchMessage
 from domain_messages.ControlState.ControlState_Power_Setpoint import ControlStatePowerSetpointMessage
 
 # initialize logging object for the module
 LOGGER = FullLogger(__name__)
-
-# set the names of the used environment variables to Python variables
-# SIMPLE_VALUE = "SIMPLE_VALUE"
-# INPUT_COMPONENTS = "INPUT_COMPONENTS"
-# OUTPUT_DELAY = "OUTPUT_DELAY"
-
 RESOURCE_FORECASTE_STATE_DISPTCH_TOPIC = "RESOURCE_FORECASTE_STATE_DISPTCH_TOPIC"
 CONTROL_STATE_POWERSETPOINT_TOPIC = 'CONTROL_STATE_POWERSETPOINT_TOPIC'
 
@@ -39,10 +33,11 @@ class Controller(AbstractSimulationComponent):
         # and to keep track of the current sum of the input values
         self._current_number_sum = 0.0
         self._current_input_components = set()
+        
 
         # Load environmental variables for those parameters that were not given to the constructor.
         environment = load_environmental_variables(
-            (RESOURCE_FORECASTE_STATE_DISPTCH_TOPIC, str, "ResourceForecasteState.Dispatch"),
+            (RESOURCE_FORECASTE_STATE_DISPTCH_TOPIC, str, "ResourceForecastState.Dispatch"),
             (CONTROL_STATE_POWERSETPOINT_TOPIC,str,"ControlState.PowerSetpoint")
         )
         self._simple_topic_base = cast(str, environment[CONTROL_STATE_POWERSETPOINT_TOPIC])
@@ -50,8 +45,10 @@ class Controller(AbstractSimulationComponent):
         self._other_topics = [
             cast(str, environment[RESOURCE_FORECASTE_STATE_DISPTCH_TOPIC])
         ]
-        
+        print(self._status_topic)
+        print(self._other_topics)
         self._dispacth_names= set(list(self.start_message["ProcessParameters"]["EconomicDispatch"]))
+        print(self._dispacth_names)
         if len(self._dispacth_names)<1:
             LOGGER.error("No economic dispatch is found in start messages")
         
@@ -77,25 +74,23 @@ class Controller(AbstractSimulationComponent):
         """
         return self._dispacth_names == self._current_input_components
 
+        
     async def general_message_handler(self, message_object: Union[BaseMessage, Any],
                                       message_routing_key: str) -> None:
         """
         TODO: ResourceForecasteStateDispatch message is handled here.
         """
-        if isinstance(message_object,ResourceForecastStateDispatchMessage ):
-            # added extra cast to allow Pylance to recognize that message_object is an instance of SimpleMessage
+
+        if isinstance(message_object,ResourceForecastStateDispatchMessage):
             message_object = cast(ResourceForecastStateDispatchMessage, message_object)
             # ignore simple messages from components that have not been registered as input components
-            if message_object.source_process_id not in self._current_input_components:
+            if message_object.source_process_id not in self._dispacth_names:
                 LOGGER.debug("Ignoring ResourceForecasteStateDispatch from {}".format(message_object.source_process_id))
 
-            # only take into account the first simple message from each component
             elif message_object.source_process_id in self._current_input_components:
                 LOGGER.info("Ignoring new ResourceForecasteStateDispatch from {}".format(message_object.source_process_id))
 
             else:
-                self._current_input_components.add(message_object.source_process_id)
-                self._current_number_sum = round(self._current_number_sum + message_object.simple_value, 3)
                 LOGGER.debug("Received ResourceForecasteStateDispatch from {}".format(message_object.source_process_id))
                 self._resource_forecast_state_dispatches_for_epoch.append(message_object)
                 self._current_input_components.add(message_object.source_process_id)
@@ -118,18 +113,16 @@ class Controller(AbstractSimulationComponent):
 
 
     def _get_control_state_message(self,resource_name,message) -> ControlStatePowerSetpointMessage:
-        real_power=message.dispatch[resource_name]["Series"]["RealPower"]["Values"][0]
-        reactive_power=message.dispatch[resource_name]["Series"]["ReactivePower"]["Values"][0]
-        message = ControlStatePowerSetpointMessage(
-            SimulationId = self.simulation_id,
-            Type = ControlStatePowerSetpointMessage.CLASS_MESSAGE_TYPE,
-            SourceProcessId = self.component_name,
-            MessageId = next(self._message_id_generator),
-            EpochNumber = self._latest_epoch,
-            TriggeringMessageIds = self._triggering_message_ids,
-            RealPower = real_power,
-            ReactivePower = reactive_power
-            )
+        real_power=message.dispatch[resource_name].series["RealPower"].values[0]
+        reactive_power=message.dispatch[resource_name].series["ReactivePower"].values[0]
+        message=self._message_generator.get_message(
+                ControlStatePowerSetpointMessage,
+                EpochNumber=self._latest_epoch,
+                TriggeringMessageIds=self._triggering_message_ids,
+                RealPower = real_power,
+                ReactivePower = reactive_power
+        )
+
         return message
 
 def create_component() -> Controller:
@@ -144,10 +137,10 @@ async def start_component():
     """
     Controller = create_component()
 
-    # The component will only start listening to the message bus once the start() method has been called.
+    # The controller will only start listening to the message bus once the start() method has been called.
     await Controller.start()
 
-    # Wait in the loop until the component has stopped itself.
+    # Wait in the loop until the controller has stopped itself.
     while not Controller.is_stopped:
         await asyncio.sleep(TIMEOUT)
 
