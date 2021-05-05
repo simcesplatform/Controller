@@ -1,0 +1,158 @@
+{
+
+    "ProcessParameters" :
+    {
+      "EconomicDispatch":
+      {
+        "EconomicDispatchA": 
+        {
+          "Horizon": "PT36H",  
+          "Timestep": "PT1H",  
+          "Resources": [
+            ["StaticTimeSeriesResource", "LoadA"],
+            ["StaticTimeSeriesResource", "GeneratorA"],
+            ["StorageResource", "storageA"]
+          ],
+          "Weights": {   
+            
+          }
+        },
+        "EconomicDispatchB":
+        {
+          "Horizon": "PT36H",  
+          "Timestep": "PT1H",  
+          "Resources": [
+            ["StaticTimeSeriesResource", "LoadB"],
+            ["StaticTimeSeriesResource", "GeneratorB"],
+            ["StorageResource", "storageB"],
+            ["PriceForecaster", "marketB"]
+            ]
+        }
+      },
+  
+      "Grid":
+      {
+        "GridA":
+        {
+          "ModelName" : "set_model_name_or_identifier_here",
+          "Resources": [
+             ["LoadA","bus3"],
+             ["GeneratorA","bus5"]
+          ],
+          "Symmetrical" : false, 
+          "MaxControlCount" : 15 
+        },
+        "GridB":
+        {
+          "ModelName" : "set_model_name_or_identifier_here",
+          "Resources" : [],
+          "Symmetrical" : false, 
+          "MaxControlCount" : 15 
+        }
+      },
+  
+      "PredictiveGridOptimization": 
+      {
+           "PredictiveGridOptimizationA": 
+   {
+  "MonitoredGridName" : "GridA",
+    "MaxVoltage" : 1.05,
+    "MinVoltage" : 0.95,
+    "UpperAmberBandVoltage" : 0.01,
+    "LowerAmberBandVoltage" : 0.01,
+    "OverloadingBaseline" : 1,
+    "AmberLoadingBaseline" : 0.9
+   },
+   "PredictiveGridOptimizationB":
+   {
+  "MonitoredGridName" : "GridB",
+    "MaxVoltage" : 1.05,
+    "MinVoltage" : 0.95,
+    "UpperAmberBandVoltage" : 0.01,
+    "LowerAmberBandVoltage" : 0.01,
+    "OverloadingBaseline" : 1,
+    "AmberLoadingBaseline" : 0.9
+   }
+  },
+  
+  "StateMonitoring": {
+   "SM_A":
+   {
+    "MonitoredGridName" : "GridA",
+    "MaxVoltage" : 1.05,
+    "MinVoltage" : 0.95,
+    "UpperAmberBandVoltage" : 0.01,
+    "LowerAmberBandVoltage" : 0.01,
+    "OverloadingBaseline" : 1,
+    "AmberLoadingBaseline" : 0.9
+   },
+   "SM_B":
+   {
+    "MonitoredGridName" : "GridB",
+    "MaxVoltage" : 1.05,
+    "MinVoltage" : 0.95,
+    "UpperAmberBandVoltage" : 0.01,
+    "LowerAmberBandVoltage" : 0.01,
+    "OverloadingBaseline" : 1,
+    "AmberLoadingBaseline" : 0.9
+   }
+  },
+  
+  "StaticTimeSeriesResourceForecaster":
+  {
+  "ResourceForecaster":
+  {
+  "ResourceForecastComponentNames": "load1, generator1",
+  "ResourceTypes": "Load, Generator",
+  "ResourceForecastStateCsvFolder": "/resources/forecasts/"
+  }
+  },
+  
+      
+      "StaticTimeSeriesResource": 
+      {
+        "LoadA":  
+        {
+          "ResourceType": "Load",
+          "ResourceStateFile": "load.csv",
+          "ResourceFileDelimiter": ","  
+        },
+        "GeneratorA":
+        {
+          "ResourceType": "Generator",
+          "ResourceStateFile": "generator.csv"
+        }
+      },
+  
+      "PriceForecaster":
+      {
+      "PriceForecasterA": 
+        {
+          "PriceForecasterStateCsvFile": "priceA.csv",
+          "PriceForecasterStateCsvDelimiter": "," 
+        },
+      "PriceForecasterB": 
+        {
+          "PriceForecasterStateCsvFile": "priceB.csv"
+        }
+      },
+      "StorageResource":  
+      {
+        "storageA": { 
+          "ResourceStateCsvFile": "control.csv",
+          "ResourceStateCsvDelimiter": ",",
+          "Bus": "bus1",
+          "ChargeRate": 100.0,
+          "DischargeRate": 100.0,
+          "InitialStateOfCharge": 50.0, 
+          "KwhRated": 100.0,
+          "DischargeEfficiency": 90.0,
+          "ChargeEfficiency": 90.0,
+          "KwRated": 100.0,
+          "SelfDischarge": 0.0
+        }
+      }  
+  
+  
+    }
+  }
