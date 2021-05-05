@@ -7,8 +7,8 @@ from tools.messages import BaseMessage
 from tools.tools import FullLogger, load_environmental_variables
 
 # import all the required messages from installed libraries
-from domain-messages.domain_messages.dispatch import ResourceForecastStateDispatchMessage
-from domain-messages.domain_messages.ControlState.ControlState_Power_Setpoint import ControlStatePowerSetpointMessage
+from domain_messages.dispatch import ResourceForecastStateDispatchMessage
+from domain_messages.ControlState.ControlState_Power_Setpoint import ControlStatePowerSetpointMessage
 
 # initialize logging object for the module
 LOGGER = FullLogger(__name__)
@@ -17,9 +17,9 @@ LOGGER = FullLogger(__name__)
 # SIMPLE_VALUE = "SIMPLE_VALUE"
 # INPUT_COMPONENTS = "INPUT_COMPONENTS"
 # OUTPUT_DELAY = "OUTPUT_DELAY"
-
 RESOURCE_FORECASTE_STATE_DISPTCH_TOPIC = "RESOURCE_FORECASTE_STATE_DISPTCH_TOPIC"
-CONTROL_STATE_POWERSETPOINT_TOPIC = 'CONTROL_STATE_POWERSETPOINT_TOPIC'
+CONTROL_STATE_POWERSETPOINT_TOPIC = "CONTROL_STATE_POWERSETPOINT_TOPIC"
+SIMULATION_START_MESSAGE_FILENAME="SIMULATION_START_MESSAGE_FILENAME"
 
 # time interval in seconds on how often to check whether the component is still running
 TIMEOUT = 1.0
@@ -42,7 +42,8 @@ class Controller(AbstractSimulationComponent):
 
         # Load environmental variables for those parameters that were not given to the constructor.
         environment = load_environmental_variables(
-            (RESOURCE_FORECASTE_STATE_DISPTCH_TOPIC, str, "ResourceForecasteState.Dispatch"),
+            (SIMULATION_START_MESSAGE_FILENAME,str,"start_message.json"),
+            (RESOURCE_FORECASTE_STATE_DISPTCH_TOPIC, str, "ResourceForecastState.Dispatch"),
             (CONTROL_STATE_POWERSETPOINT_TOPIC,str,"ControlState.PowerSetpoint")
         )
         self._simple_topic_base = cast(str, environment[CONTROL_STATE_POWERSETPOINT_TOPIC])
