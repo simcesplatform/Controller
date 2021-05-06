@@ -3,7 +3,7 @@ Name: Controller
 Type: platform
 DockerImage: procem.ain.rd.tut.fi/simces/controller:0.5
 Description: "This component is platform managed to control resources"
-Attributes:
+
 
 
 
