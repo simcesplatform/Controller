@@ -30,11 +30,7 @@ class Controller(AbstractSimulationComponent):
         super().__init__()
 
         # variables to keep track of the components that have provided input within the current epoch
-        # and to keep track of the current sum of the input values
-        self._current_number_sum = 0.0
         self._current_input_components = set()
-        
-
         # Load environmental variables for those parameters that were not given to the constructor.
         environment = load_environmental_variables(
             (RESOURCE_FORECASTE_STATE_DISPTCH_TOPIC, str, "ResourceForecastState.Dispatch"),
@@ -45,10 +41,10 @@ class Controller(AbstractSimulationComponent):
         self._other_topics = [
             cast(str, environment[RESOURCE_FORECASTE_STATE_DISPTCH_TOPIC])
         ]
-        print(self._status_topic)
-        print(self._other_topics)
-        self._dispacth_names= set(list(self.start_message["ProcessParameters"]["EconomicDispatch"]))
-        print(self._dispacth_names)
+        if self.start_message is None:
+            self._dispacth_names = set()
+        else:
+            self._dispacth_names = set(list(self.start_message.get("ProcessParameters", {}).get("EconomicDispatch", {})))
         if len(self._dispacth_names)<1:
             LOGGER.error("No economic dispatch is found in start messages")
         
@@ -59,7 +55,6 @@ class Controller(AbstractSimulationComponent):
            current epoch. This method is called automatically after receiving an epoch message for a new epoch.
         """
         self._resource_forecast_state_dispatches_for_epoch = []
-        self._current_number_sum = 0.0
         self._current_input_components = set()
 
     async def process_epoch(self) -> bool:
@@ -114,7 +109,10 @@ class Controller(AbstractSimulationComponent):
 
     def _get_control_state_message(self,resource_name,message) -> ControlStatePowerSetpointMessage:
         real_power=message.dispatch[resource_name].series["RealPower"].values[0]
-        reactive_power=message.dispatch[resource_name].series["ReactivePower"].values[0]
+        if 'ReactivePower' in message.dispatch[resource_name].series.keys():
+            reactive_power=message.dispatch[resource_name].series["ReactivePower"].values[0]
+        else:
+            reactive_power=0
         message=self._message_generator.get_message(
                 ControlStatePowerSetpointMessage,
                 EpochNumber=self._latest_epoch,
