@@ -112,7 +112,7 @@ class Controller(AbstractSimulationComponent):
         if 'ReactivePower' in message.dispatch[resource_name].series.keys():
             reactive_power=message.dispatch[resource_name].series["ReactivePower"].values[0]
         else:
-            reactive_power=0
+            reactive_power=0.0
         message=self._message_generator.get_message(
                 ControlStatePowerSetpointMessage,
                 EpochNumber=self._latest_epoch,
