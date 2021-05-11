@@ -322,6 +322,5 @@ class TestController(TestAbstractSimulationComponent):
 # # To skip baseclass tests
 del TestAbstractSimulationComponent
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.test_zero_time']
     unittest.main()
 

@@ -1,5 +1,4 @@
 import asyncio
-import datetime
 from typing import List, Tuple, Union, cast
 import os
 # from collections import namedtuple
@@ -11,11 +10,10 @@ import unittest
 
 from tools.clients import RabbitmqClient
 from tools.components import AbstractSimulationComponent, SIMULATION_START_MESSAGE_FILENAME
-from tools.tests.components import MessageGenerator, TestAbstractSimulationComponent, MessageStorage, send_message
+from tools.tests.components import Mr, TestAbstractSimulationComponent, MessageStorage, send_message
 from tools.tests.components import TestAbstractSimulationComponent
 from domain_messages.ControlState.ControlState_Power_Setpoint import ControlStatePowerSetpointMessage
-from tools.messages import AbstractMessage, MessageGenerator as GeneralMessageGenerator
-from tools.datetime_tools import to_iso_format_datetime_string
+from tools.messages import AbstractMessage
 # from tools.message.block import TimeSeriesBlock, ValueArrayBlock, QuantityBlock
 
 #from domain_messages.resource import ResourceStateMessage
@@ -26,16 +24,15 @@ from controller.controller import create_component
 from domain_messages.dispatch import ResourceForecastStateDispatchMessage
 # from economic_dispatch.simulation.message import DispatchBlock, ResourceForecastStateDispatchMessage
 
-# from economic_dispatch.simulation.tests.message_generators import DispatchMessageGenerator
+from economic_dispatch.simulation.tests.message_generators import DispatchMessageGenerator
 
 # test data
 #from economic_dispatch.simulation.tests.message_generators import DISPATCHES, #
-    #STORAGE_STATES, PRICE_FORECASTS
+    #STORAGE_STATES, PRICE_FORECASTS 
 
 
 SIMULATION_EPOCHS = 5
-SIMULATION_ID = "2020-01-01T00:00:00.000Z"
-INITIAL_START_TIME = datetime.datetime(2020, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
+SIMULATION_ID= "2020-01-01T00:00:00.000Z"
 DISPATCH_TOPIC = "ResourceForecastState.Dispatch"
 # DEMO_INPUT_GENERATORS = [
 #     DispatchMessageGenerator(simulation_id=SIMULATION_ID, process_id="EconomicDispatchA", dispatches=[]),
@@ -48,34 +45,30 @@ RESOURCE_NAMES = {
 }
 TIME_SERIES_LENGTH = 4
 DISPATCH_NAMES = ["EconomicDispatchA", "EconomicDispatchB"]
-CONTROLLER_NAME = "controller-test"
+
+#ED_COMPONENT_NAME = "ED-test"
 
 START = {
     "ProcessParameters": {
         "EconomicDispatch": {
-            "EconomicDispatchA": {},
-            "EconomicDispatchB": {}
+            "EconomicDispatchA":{},
+            "EconomicDispatchB":{}
+
         },
-        "Controller": {
-            CONTROLLER_NAME: {}
+        "Controller": {"controller-test": {}}
+
         }
     }
-}
 
+       
 
 # specify component initialization environment variables.
 start_fname = "test_start.json"
 with open(start_fname, 'w') as JSON:
     json.dump(START, JSON)
+
 os.environ[SIMULATION_START_MESSAGE_FILENAME] = str(start_fname)
-
-
-def get_time_string(hours: int) -> str:
-    """Returns datetime as string in ISO 8601 format."""
-    return cast(str, to_iso_format_datetime_string(INITIAL_START_TIME + datetime.timedelta(hours=hours)))
-
-
-def get_dispatch_message(message_generator: GeneralMessageGenerator, resources: List[str], epoch_number: int, triggering_message_ids:List[str]) \
+def get_dispatch_message(message_generator: MessageGenerator, resources: List[str], epoch_number: int, triggering_message_ids:List[str]) \
         -> AbstractMessage:
     """Returns a dispatch message."""
     return message_generator.get_message(
@@ -109,32 +102,32 @@ def get_dispatch_message(message_generator: GeneralMessageGenerator, resources: 
             for resource_index, resource_name in enumerate(resources, start=1)
         }
     )
-
-
-def get_controller_messages(message_generator: GeneralMessageGenerator, epoch_number: int,
-        triggering_message_ids: List[str]) -> List[Tuple[AbstractMessage, str]]:
-    messages = []
-    topics = []
-    all_resources = [resource for resource_list in list(RESOURCE_NAMES.values()) for resource in resource_list]
-    for resource_index, resource_name in enumerate(all_resources, start=1):
-        message = message_generator.get_message(
+def get_controller_messages(message_generator: MessageGenerator, resources: List[str], epoch_number: int, triggering_message_ids:List[str]) \
+        -> List[Tuple[AbstractMessage, str]]:
+    messages=[]
+    topics=[]
+    for resource_index, resource_name in enumerate(resources, start=1):
+        message=message_generator.get_message(
             ControlStatePowerSetpointMessage,
             EpochNumber=epoch_number,
             TriggeringMessageIds=triggering_message_ids,
             RealPower=100 + resource_index * 10 + (epoch_number - 1) * 0.1,
             ReactivePower=10 + resource_index * 1 + (epoch_number - 1) * 0.1
         )
-        topic = '.'.join(["ControlStatePowersetpoint", resource_name])
+        topic= '.'.join(["ControlStatePowerSetpoint",resource_name])
         messages.append(message)
         topics.append(topic)
     return [(m, t) for m, t in zip(messages, topics) if m is not None]
 
 
+
+
+
 class TestController(TestAbstractSimulationComponent):
-    """Unit tests for Controller component."""
+    """Unit tests for Controller component.""" 
 
     simulation_id = SIMULATION_ID
-    component_name = CONTROLLER_NAME
+    component_name = "controller-test"
 
     short_wait = 1.0
     long_wait = 4.0
@@ -142,45 +135,70 @@ class TestController(TestAbstractSimulationComponent):
     # the method which initializes the component
     component_creator = create_component
 
+    #message_generator_type = ControllerMessageGenerator
+    #additional_generator_params = {"dispatches": DISPATCHES}
     dispatch_generators = [
-        GeneralMessageGenerator(
+        MessageGenerator(
             simulation_id=SIMULATION_ID,
-            source_process_id=dispatch_name
+            process_id=dispatch_name
         )
         for dispatch_name in DISPATCH_NAMES
     ]
-    print(zip(DISPATCH_NAMES, dispatch_generators))
-    controller_generator = GeneralMessageGenerator(simulation_id=SIMULATION_ID, source_process_id=CONTROLLER_NAME)
+    #input_message_generator_type = InputMessageGenerator
+    #input_generators = DEMO_INPUT_GENERATORS
 
     normal_simulation_epochs = SIMULATION_EPOCHS
+    # use custom manager whose epoch length matches the test data.
+    #test_manager_name = "TestManager"
+    #manager_message_generator = ManagerMessageGenerator(simulation_id, test_manager_name)
 
-    def get_input_messages(self, dispatch_generators: List[GeneralMessageGenerator], epoch_number: int,
+    def get_input_messages(self, input_message_generator: get_dispatch_message, epoch_number: int,
                            triggering_message_ids: List[str]) -> List[Tuple[AbstractMessage, str]]:
         """Get the messages and topics the component is expected to publish in given epoch."""
         if epoch_number == 0:
             return []
-        messages = []
-        topics = []
+        messages=[]
+        topics=[]
         for dispatch_name, dispatch_generator in zip(DISPATCH_NAMES, dispatch_generators):
-            message = get_dispatch_message(dispatch_generator, RESOURCE_NAMES[dispatch_name], epoch_number, triggering_message_ids)
+            message = get_dispatch_message(dispatch_generator, RESOURCE_NAMES[dispatch_name], epoch_number,triggering_message_ids)
             messages.append(message)
             topics.append(DISPATCH_TOPIC)
+            
 
+      
+            
+
+
+        # messages = input_message_generator.get_input_messages(epoch_number, triggering_message_ids)
+        # topics = []
+        # for msg in messages:
+        #     if isinstance(msg, ResourceForecastPowerMessage):
+        #         topic = "ResourceForecastState.Load." + msg.source_process_id
+        #     elif isinstance(msg, PriceForecastStateMessage):
+        #         topic = os.environ[PRICE_FORECAST_STATE_TOPIC] + ".TestMarket"
+        #     elif isinstance(msg, ResourceStateMessage):
+        #         topic = os.environ[RESOURCE_STATE_TOPIC] + "." + msg.source_process_id
+        #     elif msg is None:
+        #         topic = None
+        #     else:
+        #         raise TypeError
+
+        #     topics.append(topic)
+        
         return [(m, t) for m, t in zip(messages, topics) if m is not None]
-
-    def get_expected_messages(self, component_message_generator: GeneralMessageGenerator, epoch_number: int,
-                              triggering_message_ids: List[str]) -> List[Tuple[AbstractMessage, str]]:
+    
+    def get_expected_messages(self, component_message_generator: MessageGenerator, epoch_number: int, triggering_message_ids: List[str]) -> List[Tuple[AbstractMessage, str]]:
         """Get the messages and topics the component is expected to publish in given epoch."""
         if epoch_number == 0:
             return [
-                (component_message_generator.get_status_ready_message(epoch_number, triggering_message_ids), "Status.Ready")
-            ]
-
+                (component_message_generator.get_status_message(epoch_number, triggering_message_ids), "Status.Ready")
+                ]
+            
         return [
-            *(get_controller_messages(component_message_generator, epoch_number, triggering_message_ids)),
-            (component_message_generator.get_status_ready_message(epoch_number, triggering_message_ids), "Status.Ready")
+            *(component_message_generator.get_controller_messages(epoch_number, triggering_message_ids)),
+            (component_message_generator.get_status_message(epoch_number, triggering_message_ids), "Status.Ready")
         ]
-
+    
     async def start_tester(self) -> Tuple[RabbitmqClient, MessageStorage,
                                           MessageGenerator, AbstractSimulationComponent]:
         """Tests the creation of the test component at the start of the simulation and returns a 5-tuple containing
@@ -207,25 +225,23 @@ class TestController(TestAbstractSimulationComponent):
         self.assertEqual(test_component.component_name, self.__class__.component_name)
         return (message_client, message_storage, component_message_generator, test_component)
 
-    async def epoch_tester(self, epoch_number: int, last_status_message_id: str, message_client: RabbitmqClient,
-                           message_storage: MessageStorage) -> str:
-        """Test the behavior of the test_component in one epoch."""
+    async def epoch_tester(self, epoch_number: int, test_component: AbstractSimulationComponent, message_client: RabbitmqClient,
+                           message_storage: MessageStorage, component_message_generator: MessageGenerator, 
+                           input_message_generator: MessageGenerator):
+        """Test the behaviour of the test_component in one epoch."""
 
         number_of_previous_messages = len(message_storage.messages_and_topics)
         if epoch_number == 0:
             # Epoch number 0 corresponds to the start of the simulation.
             manager_message = self.__class__.manager_message_generator.\
                 get_simulation_state_message(True)
-            component_inputs = []
-            expected_responds = []
         else:
             manager_message = self.__class__.manager_message_generator.get_epoch_message(
-                epoch_number, [last_status_message_id])
+            epoch_number, [component_message_generator.latest_message_id])
             component_inputs = self.get_input_messages(
-                self.dispatch_generators, epoch_number, [manager_message.message_id])
-            input_message_ids = [message.message_id for message, _ in component_inputs]
+            input_message_generator, epoch_number, [manager_message.message_id])
             expected_responds = self.get_expected_messages(
-                self.controller_generator, epoch_number, [manager_message.message_id, *input_message_ids])
+            component_message_generator, epoch_number, [manager_message.message_id])
 
         await send_message(message_client, manager_message, manager_message.message_type)
 
@@ -253,20 +269,16 @@ class TestController(TestAbstractSimulationComponent):
                 self.assertEqual(received_topic, expected_topic)
                 self.assertTrue(self.compare_message(received_message, expected_message))
 
-        return expected_responds[-1][0].message_id
-
     async def test_normal_simulation(self):
         """A test with a normal input in a simulation containing only manager and test component."""
         # Test the creation of the test component.
-        message_client, message_storage, component_message_generator, test_component = \
+        message_client, message_storage, component_message_generator,test_component = \
             await self.start_tester()
 
-        last_status_message_id = "no-message-1"
         # Test the component with the starting simulation state message (epoch 0) and n normal epochs.
         for epoch_number in range(0, self.__class__.normal_simulation_epochs + 1):
             with self.subTest(epoch_number=epoch_number):
-                last_status_message_id = await self.epoch_tester(
-                    epoch_number, last_status_message_id, message_client, message_storage)
+                await self.epoch_tester(epoch_number, test_component, message_client, message_storage, component_message_generator)
 
         # Test the closing down of the test component after simulation state message "stopped".
         await self.end_tester(message_client, test_component)
@@ -301,18 +313,18 @@ class TestController(TestAbstractSimulationComponent):
         await self.end_tester(message_client, test_component) """
         return
 
-    def compare_control_message(self, first_message: ControlStatePowerSetpointMessage, second_message: ControlStatePowerSetpointMessage):
+    def test_compare_control_message(self, first_message: ControlStatePowerSetpointMessage, second_message: ControlStatePowerSetpointMessage):
         """Check that the two ControlStatePowerSetpointMessage messages have the same content."""
         self.compare_abstract_result_message(first_message, second_message)
-        self.assertAlmostEqual(first_message.real_power.value, second_message.real_power.value)
-
-    def compare_message(self, first_message: AbstractMessage, second_message: AbstractMessage) -> bool:
+        self.assertAlmostEqual( first_message.real_power.value, second_message.real_power.value )
+        
+    def test_compare_message(self, first_message: AbstractMessage, second_message: AbstractMessage) -> bool:
         """Override the super class implementation to add the comparison of ControlStatePowerSetpointMessage messages."""
         if super().compare_message(first_message, second_message):
             return True
 
         if isinstance(second_message, ControlStatePowerSetpointMessage):
-            self.compare_control_message(cast(ControlStatePowerSetpointMessage, first_message), second_message)
+            self.test_compare_control_message(cast(ControlStatePowerSetpointMessage, first_message), second_message)
             return True
 
         return False
