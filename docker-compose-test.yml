@@ -1,0 +1,39 @@
+version: '3.5'
+
+services:
+
+  rabbitmq:
+    image: rabbitmq:3.8.4-management
+    container_name: rabbitmq_controller_test
+    restart: always
+    logging:
+      driver: "none"
+    expose:
+      - "5672"
+    environment:
+      - RABBITMQ_EXCHANGE=procem.controller_test
+
+
+  controller_component:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+    command: ["python3", "-u", "-m", "unittest"]
+    depends_on:
+      - rabbitmq
+    environment:
+      - SIMULATION_LOG_FILE=logs/logfile_static.log
+      - SIMULATION_LOG_LEVEL=20
+      - RABBITMQ_HOST=rabbitmq_controller_test
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_SSL=false
+      - RABBITMQ_EXCHANGE=procem.controller_test
+      - RABBITMQ_EXCHANGE_AUTODELETE=false
+      - RABBITMQ_EXCHANGE_DURABLE=false
+    volumes:
+      - simulation_logs:/logs
+
+volumes:
+  simulation_logs:
+    name: simulation_logs_controller_component_test
