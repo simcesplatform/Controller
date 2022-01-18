@@ -114,6 +114,7 @@ async def start_sender() -> None:
         )
         for dispatch_name in DISPATCH_NAMES
     ]
+    print(dispatch_generators)
 
     
     message = manager_generator.get_simulation_state_message("running")
