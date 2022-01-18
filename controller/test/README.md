@@ -1,4 +1,4 @@
-# Storage resource
+# Controller
 
 A component for simulating a controller for sending control information to the resources.The task of this component is to listen ResourceForecasteState.Dispatch and publish ControlState.PowerSetpoint messages to corresponding resources.
 
