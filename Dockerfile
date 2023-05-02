@@ -17,5 +17,3 @@ COPY domain-messages/ /domain-messages/
 WORKDIR /
 
 CMD [ "python", "-u", "-m", "controller.controller" ]
-
-

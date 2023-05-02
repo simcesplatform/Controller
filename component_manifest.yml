@@ -1,9 +1,5 @@
 # The component manifest file for the controller component
 Name: Controller
 Type: platform
-DockerImage: procem.ain.rd.tut.fi/simces/controller:latest
+DockerImage: ghcr.io/simcesplatform/controller:latest
 Description: "This component is platform managed to control resources"
-
-
-
-
